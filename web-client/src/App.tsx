@@ -5,8 +5,8 @@ import './App.css';
 const REDIRECT_DEEPLINK = 'unitydl://'
 
 const LOGIN_CONFIG = {
-  loginOptions: [TypeOfLogin.Google, TypeOfLogin.Facebook, TypeOfLogin.Twitter, TypeOfLogin.Reddit],
-  wideButtons: [true, false, false, false]
+  loginOptions: [TypeOfLogin.Google, TypeOfLogin.Facebook, TypeOfLogin.Twitter],
+  wideButtons: [true, true, true]
 }
 
 function App() {

@@ -41,10 +41,11 @@ public class URLSchemeHandler : MonoBehaviour
     {
         deeplinkURL = url;
         string address = url.Split("?address=")[1].Split('&')[0];
-        signInButton.gameObject.SetActive(false);
-        textfield.gameObject.SetActive(true);
-        sendOperation.gameObject.SetActive(true);
 
+        signInButton.gameObject.SetActive(false);
+        sendOperation.gameObject.SetActive(true);
+        textfield.gameObject.SetActive(true);
+        
         textfield.text = "Address: " +  address.Substring(0, 4) + "..." + address.Substring(address.Length - 4);
     }
 }
