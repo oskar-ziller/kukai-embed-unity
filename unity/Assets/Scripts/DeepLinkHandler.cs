@@ -2,17 +2,23 @@ using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
 
-public class URLSchemeHandler : MonoBehaviour
+public class DeepLinkHandler : MonoBehaviour
 {
-    public Text textfield;
+    public Text addressValue;
+    public Text addressTitle;
+    public Text opHashTitle;
+    public Text opHashValue;
     public Button signInButton;
     public Button sendOperation;
 
-    public static URLSchemeHandler Instance { get; private set; }
+    public static DeepLinkHandler Instance { get; private set; }
     public string deeplinkURL;
 
     void Start() {
-        textfield.gameObject.SetActive(false);
+        addressTitle.gameObject.SetActive(false);
+        addressValue.gameObject.SetActive(false);
+        opHashTitle.gameObject.SetActive(false);
+        opHashValue.gameObject.SetActive(false);
         sendOperation.gameObject.SetActive(false);
     }
 
@@ -44,8 +50,21 @@ public class URLSchemeHandler : MonoBehaviour
 
         signInButton.gameObject.SetActive(false);
         sendOperation.gameObject.SetActive(true);
-        textfield.gameObject.SetActive(true);
+        addressValue.gameObject.SetActive(true);
+        addressTitle.gameObject.SetActive(true);
         
-        textfield.text = "Address: " +  address.Substring(0, 4) + "..." + address.Substring(address.Length - 4);
+        addressValue.text = "Address: " +  address.Substring(0, 4) + "..." + address.Substring(address.Length - 4);
+
+        const string operationHashKey = "&operationHash=";
+
+        if (!url.Contains(operationHashKey)) {
+            return;
+        }
+
+        string operationHash = url.Split("&operationHash=")[1];
+
+        opHashTitle.gameObject.SetActive(true);
+        opHashValue.gameObject.SetActive(true); 
+        opHashValue.text = operationHash;
     }
 }
