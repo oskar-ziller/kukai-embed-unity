@@ -47,12 +47,15 @@ public class DeepLinkHandler : MonoBehaviour
     {
         deeplinkURL = url;
         string address = url.Split("?address=")[1].Split('&')[0];
+        string typeOfLogin = url.Split("&typeOfLogin=")[1].Split('&')[0];
 
         signInButton.gameObject.SetActive(false);
         sendOperation.gameObject.SetActive(true);
         addressValue.gameObject.SetActive(true);
         addressTitle.gameObject.SetActive(true);
         
+        Singleton.Instance.TypeOfLogin = typeOfLogin;
+        Singleton.Instance.Address = address;
         addressValue.text = "Address: " +  address.Substring(0, 4) + "..." + address.Substring(address.Length - 4);
 
         const string operationHashKey = "&operationHash=";
