@@ -1,4 +1,4 @@
-import { KukaiEmbed, TypeOfLogin } from 'kukai-embed';
+import { KukaiEmbed, LoginConfig, TypeOfLogin } from 'kukai-embed';
 import { useEffect, useRef, useState } from 'react';
 import './App.css';
 
@@ -9,21 +9,34 @@ enum ACTION_TYPES {
 
 const REDIRECT_DEEPLINK = 'unitydl://'
 
-const LOGIN_LAYOUT = {
-  loginOptions: [TypeOfLogin.Google, TypeOfLogin.Facebook, TypeOfLogin.Twitter],
+const DEFAULT_LOGIN_LAYOUT = {
+  loginOptions: [TypeOfLogin.Google, 'email' as TypeOfLogin, TypeOfLogin.Twitter],
   wideButtons: [true, true, true]
+}
+
+function getLoginLayout() {
+  const params = new URLSearchParams(decodeURIComponent(window.location.search))
+
+  const typeOfLogin = params.get('typeOfLogin')
+  const id = params.get('id') || 'sample-id'
+  const nonce = params.get('nonce')
+
+  const loginLayout = typeOfLogin ? { loginOptions: [typeOfLogin], wideButtons: [true] } as LoginConfig : DEFAULT_LOGIN_LAYOUT
+
+  return !!nonce ? { authParams: { id, nonce }, ...loginLayout } : loginLayout
 }
 
 function getAction() {
   const params = new URLSearchParams(decodeURIComponent(window.location.search))
   const hasOperation = params.has(ACTION_TYPES.OPERATION)
+  const typeOfLogin = params.get('typeOfLogin')
 
   if (hasOperation) {
     const operationPayload = params.get(ACTION_TYPES.OPERATION)!
-    return { action: ACTION_TYPES.OPERATION, payload: JSON.parse(operationPayload) }
+    return { action: ACTION_TYPES.OPERATION, payload: JSON.parse(operationPayload), typeOfLogin }
   }
 
-  return { action: ACTION_TYPES.LOGIN }
+  return { action: ACTION_TYPES.LOGIN, typeOfLogin }
 }
 
 async function handleLogin(kukaiEmbed: KukaiEmbed) {
@@ -31,17 +44,22 @@ async function handleLogin(kukaiEmbed: KukaiEmbed) {
     await kukaiEmbed.logout()
   }
 
-  const { pkh, userData } = await kukaiEmbed.login(LOGIN_LAYOUT) // where pkh: tezos address 
-  const { name, email, typeOfLogin } = userData as any
+  const loginLayout = getLoginLayout()
 
-  window.location.href = `${REDIRECT_DEEPLINK}kukai-embed/?address=${pkh}&name=${name}&email=${email}&typeOfLogin=${typeOfLogin}`
+  const { pkh, userData, authResponse } = await kukaiEmbed.login(loginLayout) // where pkh: tezos address 
+  const { name, email } = userData as any
+  const { message, signature } = authResponse || {}
+
+  window.location.href = encodeURI(`${REDIRECT_DEEPLINK}kukai-embed/?address=${pkh}&name=${name}&email=${email}&authResponse=${authResponse}&message=${message}&signature=${signature}&typeOfLogin=${userData.typeOfLogin}`)
 }
+
 
 async function handleOperation(kukaiEmbed: KukaiEmbed, payload: any) {
   let pkh: string, userData: any
 
   if (!kukaiEmbed.user) {
-    const user = await kukaiEmbed.login(LOGIN_LAYOUT)
+    const loginLayout = getLoginLayout()
+    const user = await kukaiEmbed.login(loginLayout)
     pkh = user.pkh
     userData = user.userData
 
@@ -53,7 +71,7 @@ async function handleOperation(kukaiEmbed: KukaiEmbed, payload: any) {
   const operationHash = await kukaiEmbed.send(payload)
   const { name, email, typeOfLogin } = userData
 
-  window.location.href = `${REDIRECT_DEEPLINK}kukai-embed/?address=${pkh}&name=${name}&email=${email}&typeOfLogin=${typeOfLogin}&operationHash=${operationHash}`
+  window.location.href = encodeURI(`${REDIRECT_DEEPLINK}kukai-embed/?address=${pkh}&name=${name}&email=${email}&typeOfLogin=${typeOfLogin}&operationHash=${operationHash}`)
 }
 
 function App() {
