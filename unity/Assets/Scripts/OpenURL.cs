@@ -56,8 +56,8 @@ public class OpenURL : MonoBehaviour
     public void OpenLoginLink()
     {
         // generate a nonce (challenge) on the backend or in-memory
-        string nonce = 'my_nonce';
-        string projectId = 'my_project_id';
+        string nonce = "my_nonce";
+        string projectId = "my_project_id";
         
         Application.OpenURL($"{deepLinkURL}/?action=login&nonce={nonce}");
     }

@@ -456,7 +456,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb6aee104394d4874ad2951b246cedd9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  deepLinkURL: http://192.168.1.106:3000
+  deepLinkURL: http://localhost:3000
 --- !u!1 &963194225
 GameObject:
   m_ObjectHideFlags: 0
