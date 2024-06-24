@@ -1,6 +1,7 @@
 import { KukaiEmbed, LoginConfig, TypeOfLogin } from 'kukai-embed';
 import { useEffect, useRef, useState } from 'react';
 import './App.css';
+import { isBrowserSafe } from './utils';
 
 enum ACTION_TYPES {
   OPERATION = 'operation',
@@ -79,6 +80,10 @@ function App() {
   const kukaiEmbed = useRef(new KukaiEmbed({ net: "https://ghostnet.kukai.app", icon: false }))
 
   async function handleAction() {
+    if (!isBrowserSafe()) {
+      throw new Error('Please continue in an external browser')
+    }
+
     const { action, payload } = getAction()
     await kukaiEmbed.current.init()
 
