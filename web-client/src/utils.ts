@@ -1,6 +1,6 @@
 const IN_APP_BROWSERS_REGEX = /(Instagram|Snapchat|Twitter|FBAV|FBAN|TikTok)/i
 
-export function isBrowserSafe() {
+export function isBrowserOAuthCompatible() {
     var userAgent = navigator.userAgent || navigator.vendor
 
     if (IN_APP_BROWSERS_REGEX.test(userAgent)) {
