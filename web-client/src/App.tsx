@@ -8,7 +8,7 @@ enum ACTION_TYPES {
   LOGIN = 'login',
 }
 
-const REDIRECT_DEEPLINK = 'unitydl://'
+const REDIRECT_DEEPLINK = 'unitydl001://';
 
 const DEFAULT_LOGIN_LAYOUT = {
   loginOptions: [TypeOfLogin.Google, 'email' as TypeOfLogin, TypeOfLogin.Twitter],
@@ -28,56 +28,83 @@ function getLoginLayout() {
 }
 
 function getAction() {
-  const params = new URLSearchParams(decodeURIComponent(window.location.search))
-  const hasOperation = params.has(ACTION_TYPES.OPERATION)
-  const typeOfLogin = params.get('typeOfLogin')
+    console.log("Full URL Search Params:", window.location.search);
 
-  if (hasOperation) {
-    const operationPayload = params.get(ACTION_TYPES.OPERATION)!
-    return { action: ACTION_TYPES.OPERATION, payload: JSON.parse(operationPayload), typeOfLogin }
-  }
+    const decodedSearchParams = decodeURIComponent(window.location.search);
+    console.log("Decoded URL Search Params:", decodedSearchParams);
+
+    const params = new URLSearchParams(decodedSearchParams);
+    const hasOperation = params.has(ACTION_TYPES.OPERATION);
+    console.log("Has Operation:", hasOperation);
+
+    const typeOfLogin = params.get('typeOfLogin');
+    console.log("Type of Login:", typeOfLogin);
+
+    if (hasOperation) {
+        const operationPayload = params.get(ACTION_TYPES.OPERATION)!;
+        console.log("Operation Payload (raw):", operationPayload);
+
+        try {
+            const parsedPayload = JSON.parse(operationPayload);
+            console.log("Parsed Payload:", parsedPayload);
+            return { action: ACTION_TYPES.OPERATION, payload: parsedPayload, typeOfLogin };
+        } catch (error) {
+            console.error("Error parsing JSON payload:", error);
+            return { action: ACTION_TYPES.LOGIN, typeOfLogin };
+        }
+    }
 
   return { action: ACTION_TYPES.LOGIN, typeOfLogin }
 }
 
-async function handleLogin(kukaiEmbed: KukaiEmbed) {
-  if (kukaiEmbed.user) {
-    await kukaiEmbed.logout()
-  }
+async function handleLogin(kukaiEmbed: KukaiEmbed, setRedirectUrl: React.Dispatch<React.SetStateAction<string>>)
+{
+    if (kukaiEmbed.user)
+    {
+        await kukaiEmbed.logout()
+    }
 
-  const loginLayout = getLoginLayout()
+    const loginLayout = getLoginLayout();
 
-  const { pkh, userData, authResponse } = await kukaiEmbed.login(loginLayout) // where pkh: tezos address 
-  const { name, email } = userData as any
-  const { message, signature } = authResponse || {}
+    const {pkh, pk, userData, authResponse} = await kukaiEmbed.login(loginLayout); // where pkh: tezos address 
+    const {name, email} = userData as any;
+    const {message, signature} = authResponse || {};
 
-  window.location.href = encodeURI(`${REDIRECT_DEEPLINK}kukai-embed/?address=${pkh}&name=${name}&email=${email}&authResponse=${authResponse}&message=${message}&signature=${signature}&typeOfLogin=${userData.typeOfLogin}`)
+    const deeplinkUrl = encodeURI(`${REDIRECT_DEEPLINK}kukai-embed/?type=login&address=${pkh}&public_key=${pk}&name=${name}&email=${email}&message=${message}&signature=${signature}&typeOfLogin=${userData.typeOfLogin}`);
+    console.log('OPENING DEEPLINK: ', deeplinkUrl);
+    setRedirectUrl(deeplinkUrl);
 }
 
 
-async function handleOperation(kukaiEmbed: KukaiEmbed, payload: any) {
-  let pkh: string, userData: any
+async function handleOperation(kukaiEmbed: KukaiEmbed, payload: any)
+{
+    let pkh: string, userData: any;
 
-  if (!kukaiEmbed.user) {
-    const loginLayout = getLoginLayout()
-    const user = await kukaiEmbed.login(loginLayout)
-    pkh = user.pkh
-    userData = user.userData
+    if (!kukaiEmbed.user)
+    {
+        const loginLayout = getLoginLayout();
+        const user = await kukaiEmbed.login(loginLayout);
+        pkh = user.pkh;
+        userData = user.userData
+    } else
+    {
+        pkh = kukaiEmbed.user.pkh;
+        userData = kukaiEmbed.user.userData
+    }
 
-  } else {
-    pkh = kukaiEmbed.user.pkh
-    userData = kukaiEmbed.user.userData
-  }
+    const operationHash = await kukaiEmbed.send(payload);
+    const {name, email, typeOfLogin} = userData;
 
-  const operationHash = await kukaiEmbed.send(payload)
-  const { name, email, typeOfLogin } = userData
-
-  window.location.href = encodeURI(`${REDIRECT_DEEPLINK}kukai-embed/?address=${pkh}&name=${name}&email=${email}&typeOfLogin=${typeOfLogin}&operationHash=${operationHash}`)
+    const deeplinkUrl = encodeURI(`${REDIRECT_DEEPLINK}kukai-embed/?type=operation_response&address=${pkh}&name=${name}&email=${email}&typeOfLogin=${typeOfLogin}&operation_hash=${operationHash}`);
+    console.log('OPENING DEEPLINK: ', deeplinkUrl);
+    window.location.href = deeplinkUrl
 }
 
-function App() {
-  const [error, setError] = useState('')
-  const kukaiEmbed = useRef(new KukaiEmbed({ net: "https://ghostnet.kukai.app", icon: false }))
+function App()
+{
+    const [error, setError] = useState('');
+    const kukaiEmbed = useRef(new KukaiEmbed({net: "https://ghostnet.kukai.app", icon: false}));
+    const [redirectUrl, setRedirectUrl] = useState('');
 
   async function handleAction() {
     if (!isBrowserOAuthCompatible()) {
@@ -87,14 +114,14 @@ function App() {
     const { action, payload } = getAction()
     await kukaiEmbed.current.init()
 
-    try {
-      action === ACTION_TYPES.LOGIN
-        ? await handleLogin(kukaiEmbed.current)
-        : await handleOperation(kukaiEmbed.current, payload)
-    } catch (error: any) {
-      setError(error?.message)
+        try
+        {
+            action === ACTION_TYPES.LOGIN ? await handleLogin(kukaiEmbed.current, setRedirectUrl) : await handleOperation(kukaiEmbed.current, payload)
+        } catch (error: any)
+        {
+            setError(error?.message)
+        }
     }
-  }
 
   useEffect(() => {
 
@@ -105,13 +132,14 @@ function App() {
       })
   }, [])
 
-  return (
-    <div className="parent">
-      <div>KUKAI EMBED DELEGATE</div>
-      <div>WAITING FOR ACTION</div>
-      {error && <div className='error'>Status: {error}</div>}
-    </div>
-  );
+    return <div className="parent">
+        <div>KUKAI EMBED DELEGATE</div>
+        <div>WAITING FOR ACTION</div>
+        {error && <div className='error'>Status: {error}</div>}
+        {redirectUrl && <button onClick={() => window.location.href = redirectUrl}>
+            Continue to App
+        </button>}
+    </div>;
 }
 
 export default App;
